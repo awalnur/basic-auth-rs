@@ -1,44 +1,46 @@
-mod infrastructure;
-mod config;
-mod utils;
+// Application entry point
+// Sets up and runs the web server
 
-use ::actix_web::{App, HttpServer, get, Responder, HttpResponse};
-use actix_web::middleware::Logger;
-use json;
+use actix_web::{web, App, HttpServer, middleware::Logger};
+use basic_auth::infrastructure::config::dependency_injection::init_dependencies;
+use basic_auth::interfaces::api::routes::configure_routes;
 use dotenv::dotenv;
-
-#[get("/")]
-async fn index() -> impl Responder {
-    // This is the handler for the root path
-    let response_body = json::object! {
-        message: "Hello, world!"
-    };
-    HttpResponse::Ok().body(response_body.dump())
-}
+use std::env;
+use log::info;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Initialize environment
+    dotenv().ok();
 
-    // Set the logging level to debug
-    unsafe { std::env::set_var("RUST_LOG", "debug") }
-
+    // Initialize logger
     env_logger::init();
 
+    // Initialize all dependencies
+    let dependencies = init_dependencies();
 
-    let database_pool = match config::database::init_pool() {
-        Ok(pool) => Some(pool),
-        Err(e) => {
-            eprintln!("Failed to create database pool: {}", e);
-            None
-        }
-    };
-    // Initialize the logger
-    // Start the HTTP server
+    // Get server configuration from environment
+    let host = env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let port = env::var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string())
+        .parse::<u16>().expect("SERVER_PORT must be a number");
 
-    HttpServer::new(|| {
+    info!("Starting server at http://{}:{}", host, port);
+
+    // Start HTTP server
+    HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .service(index)
+            .app_data(dependencies.auth_controller.clone())
+            .app_data(dependencies.user_controller.clone())
+            .app_data(dependencies.auth_middleware.clone())
+            .configure(|cfg| configure_routes(
+                cfg,
+                dependencies.auth_controller.clone(),
+                dependencies.user_controller.clone(),
+                dependencies.auth_middleware.clone(),
+            ))
     })
-        .bind(("0.0.0.0", 8082))?.run().await
+        .bind((host, port))?
+        .run()
+        .await
 }

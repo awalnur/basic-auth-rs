@@ -1,0 +1,58 @@
+# Development Dockerfile for Rust Authentication Service
+# Optimized for development experience with fast rebuilds
+
+FROM rust:1.75-slim-bullseye as builder
+
+# Install required dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq-dev \
+    pkg-config \
+    libssl-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a new empty project
+WORKDIR /usr/src/app
+RUN cargo init
+
+# Copy Cargo.toml and Cargo.lock
+COPY Cargo.toml Cargo.lock ./
+
+# Build dependencies (this will be cached unless Cargo.toml or Cargo.lock changes)
+RUN cargo build --lib && \
+    rm -rf src/*.rs && \
+    rm -rf target/debug/deps/basic_auth*
+
+# Copy the source code
+COPY . .
+
+# Build the development version
+RUN cargo build
+
+# Runtime stage
+FROM debian:bullseye-slim
+
+# Install runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libpq5 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the binary from the builder stage
+COPY --from=builder /usr/src/app/target/debug/basic-auth /app/basic-auth
+
+# Copy the migrations folder
+COPY --from=builder /usr/src/app/migrations /app/migrations
+
+# Copy the .env.example file
+COPY --from=builder /usr/src/app/.env.example /app/.env.example
+
+# Expose the port
+EXPOSE 8080
+
+# Command to run
+CMD ["./basic-auth"]

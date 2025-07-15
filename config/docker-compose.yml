@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: basic-auth-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-basic_auth}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - basic-auth-network
+    restart: unless-stopped
+
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: deployments/docker/dev/Dockerfile.dev
+    container_name: basic-auth-api
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-basic_auth}
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - RUST_LOG=debug
+      - JWT_SECRET=${JWT_SECRET:-development_secret_key_do_not_use_in_production}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - basic-auth-network
+    restart: unless-stopped
+    volumes:
+      - ./:/usr/src/app
+      - cargo_cache:/usr/local/cargo/registry
+      - target_cache:/usr/src/app/target
+    command: /bin/sh -c "diesel setup && diesel migration run && cargo run"
+
+networks:
+  basic-auth-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  cargo_cache:
+  target_cache:

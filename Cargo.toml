@@ -6,9 +6,41 @@ edition = "2024"
 [dependencies]
 actix-web = "4.11.0"
 actix-web-httpauth = "0.7.0"
-diesel = { version = "2.2.11", features = ["postgres"] }
+base64 = "0.21.0"
+
+diesel = { version = "2.2.11", features = ["postgres", "r2d2", "uuid", "chrono"
+] }
 dotenv = "0.15.0"
 serde = { version = "1.0", features = ["derive"] }
 json = "0.12.4"
+argon2 = { version = "0.4", features = ["default"] }
 env_logger = "0.11.8"
 thiserror = "2.0.12"
+chrono = { version = "0.4.41", features = ["serde"] }
+uuid = { version = "1.4", features = ["v4", "serde"] }
+log = "0.4"
+async-trait = "0.1"
+validator = { version = "0.16", features = ["derive"] }
+lazy_static = "1.4"
+regex = "1.9"
+serde_json = "1.0"
+tokio = { version = "1.29", features = ["full"] }
+jsonwebtoken = "8.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json"] }
+rand = "0.8"
+futures-util = "0.3.31"
+
+[dev-dependencies]
+mockall = "0.11"
+tokio-test = "0.4"
+actix-rt = "2.8"
+wiremock = "0.5"
+pretty_assertions = "1.4"
+test-case = "3.1"
+serde_json = "1.0"
+
+[features]
+default = []
+integration_tests = []
+e2e_tests = []
