@@ -431,7 +431,8 @@ ON CONFLICT (name) DO NOTHING;
 -- Create default admin user (password should be changed immediately)
 -- Note: This is for demo purposes - in production, create admin users securely
 INSERT INTO users (username, email, password_hash, email_verified, is_active, created_at)
-VALUES ('admin', 'admin@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewMw1xD5Nk6LxbSG', TRUE, TRUE,
+VALUES ('admin', 'admin@example.com',
+        '$argon2id$v=19$m=4096,t=3,p=1$bvXS9e72h1CJQqZ9oQLuFQ$2DSqY3cj40GmAsHXjtLgVnQFpy21JfA8rIaB6Rp2Jw0', TRUE, TRUE,
         CURRENT_TIMESTAMP)
 ON CONFLICT (email) DO NOTHING;
 

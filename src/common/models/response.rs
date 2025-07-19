@@ -195,7 +195,7 @@ impl ApiErrorResponse {
         Self {
             success: false,
             status_code: 401,
-            error_code: "unauthorized".to_string(),
+            error_code: "Unauthorized".to_string(),
             message: message.to_string(),
             details: None,
             validation_errors: None,

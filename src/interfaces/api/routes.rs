@@ -2,7 +2,7 @@
 // This file contains definitions for all API routes
 
 use std::sync::Arc;
-use actix_web::{web, HttpResponse, Responder, HttpRequest, get, post, put, delete, scope, App};
+use actix_web::{web, FromRequest, HttpResponse, Responder, dev::Payload, HttpRequest, get, post, put, delete, scope, App};
 use crate::application::dtos::auth_dto::{LoginRequestDto, RegisterUserDto};
 use crate::interfaces::api::controllers::auth_controller::AuthController;
 use crate::interfaces::api::controllers::user_controller::UserController;
@@ -29,11 +29,12 @@ pub fn configure_routes(
     // API routes
     cfg.service(
         web::scope("/api")
+            .service(health_check)
             // Authentication routes (public)
             .service(
                 web::scope("/auth")
-                    .app_data(auth_controller.clone())
-                    .route("/login", web::post().to(login))
+                    .app_data(auth_controller.clone()) // Add auth controller data
+                    .service(login) // Health check endpoint
                     .route("/register", web::post().to(register))
                     .route("/logout", web::post().to(logout))
             )
@@ -71,15 +72,51 @@ async fn health_check() -> impl Responder {
 
 // Auth Controller Route Handlers
 
-/// Login handler that passes the request to the auth controller
+
+/// Custom JSON extractor that handles deserialization errors
+pub struct SafeJson<T>(pub T);
+
+impl<T> FromRequest for SafeJson<T>
+where
+    T: serde::de::DeserializeOwned + 'static,
+{
+    type Error = actix_web::Error;
+    type Future = std::pin::Pin<Box<dyn std::future::Future<Output=Result<Self, Self::Error>>>>;
+
+    fn from_request(req: &HttpRequest, payload: &mut Payload) -> Self::Future {
+        let json_fut = web::Json::<T>::from_request(req, payload);
+
+        Box::pin(async move {
+            match json_fut.await {
+                Ok(json) => Ok(SafeJson(json.into_inner())),
+                Err(e) => {
+                    Err(actix_web::error::ErrorBadRequest("Invalid JSON format"))
+                }
+            }
+        })
+    }
+}
+#[post("/login")] /// Login handler that passes the request to the auth controller
 async fn login(
-    req: web::Json<LoginRequestDto>,
+    req: SafeJson<LoginRequestDto>,
     auth_ctrl: web::Data<AuthController>,
 ) -> impl Responder {
     let auth_controller = auth_ctrl.get_ref();
-    auth_controller.login(req).await
-}
 
+    // println!("hehe {:?}", req);
+    // // // Extract the auth controller from the web::Data wrapper
+    // let auth_controller = auth_ctrl.get_ref();
+    let req_json = web::Json(req.0); // Extract the inner value from SafeJson
+    auth_controller.login(req_json).await
+    // let response = ApiResponse::with_message(
+    //     serde_json::json!({
+    //         "version": env!("CARGO_PKG_VERSION")
+    //     }),
+    //     "Service is healthy",
+    // );
+    //
+    // HttpResponse::Ok().json(response)
+}
 /// Register handler that passes the request to the auth controller
 async fn register(
     req: web::Json<RegisterUserDto>,

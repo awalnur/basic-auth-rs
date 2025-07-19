@@ -7,6 +7,8 @@ use basic_auth::interfaces::api::routes::configure_routes;
 use dotenv::dotenv;
 use std::env;
 use log::info;
+use env_logger::Env;
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -14,7 +16,7 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
     // Initialize logger
-    env_logger::init();
+    env_logger::init_from_env(Env::default().default_filter_or("debug"));
 
     // Initialize all dependencies
     let dependencies = init_dependencies();
@@ -25,11 +27,13 @@ async fn main() -> std::io::Result<()> {
         .parse::<u16>().expect("SERVER_PORT must be a number");
 
     info!("Starting server at http://{}:{}", host, port);
-
+    println!("Starting server at http://{}:{}", host, port);
     // Start HTTP server
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
+            .wrap(Logger::new("%a %{User-Agent}i")) // Custom format
+
             .app_data(dependencies.auth_controller.clone())
             .app_data(dependencies.user_controller.clone())
             .app_data(dependencies.auth_middleware.clone())

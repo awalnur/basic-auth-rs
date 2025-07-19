@@ -11,6 +11,7 @@ use crate::application::use_cases::auth::login_use_case::{LoginUseCase};
 use crate::application::use_cases::user::create_user_use_case::CreateUserUseCase;
 use crate::domain::entities::user::User;
 use crate::common::errors::AppError;
+use crate::interfaces::api::routes::SafeJson;
 
 /// AuthController handles all HTTP endpoints related to authentication
 ///

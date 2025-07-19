@@ -6,6 +6,7 @@ use crate::domain::repositories::user_repository::{UserRepository, RepositoryRes
 use thiserror::Error;
 use std::sync::Arc;
 use log::error;
+use crate::infrastructure::security::password_hasher::HasherPasswordService;
 
 /// Errors that may occur during authentication process
 #[derive(Debug, Error)]
@@ -102,6 +103,7 @@ impl AuthenticationService {
                 })?
         };
 
+        println!("User found: {:?}", user);
         // Validate user found
         let user = user.ok_or(AuthenticationError::InvalidCredentials)?;
 
@@ -113,7 +115,7 @@ impl AuthenticationService {
         // Validate password - actual implementation will use password hasher
         if !verify_password(password, &user.password_hash) {
             // Log failed login attempt (can be added later)
-            // log::info!("Failed login attempt for user: {}", username_or_email);
+            log::info!("Failed login attempt for user: {} ", username_or_email);
             return Err(AuthenticationError::InvalidCredentials);
         }
 
@@ -139,6 +141,8 @@ impl AuthenticationService {
 fn verify_password(password: &str, password_hash: &str) -> bool {
     // IMPORTANT: This is just a simple example, in actual implementation
     // use secure hash libraries like bcrypt or argon2
-    
-    password_hash == format!("hashed:{}", password)
+    let verify = HasherPasswordService::new()
+        .verify_password(password, password_hash)
+        .unwrap_or(false);
+    verify
 }

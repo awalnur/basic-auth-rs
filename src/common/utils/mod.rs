@@ -25,7 +25,7 @@ fn get_password_patterns() -> &'static HashMap<&'static str, Regex> {
         patterns.insert("uppercase", Regex::new(r"[A-Z]").unwrap());
         patterns.insert("lowercase", Regex::new(r"[a-z]").unwrap());
         patterns.insert("digit", Regex::new(r"\d").unwrap());
-        patterns.insert("special", Regex::new(r"[!@#$%^&*()\,.?:{}\|<>").unwrap());
+        patterns.insert("special", Regex::new("[!@#$%^&*(),.?\":{}|<>]").unwrap());
         patterns
     })
 }
@@ -232,10 +232,21 @@ pub mod validation {
     /// Estimates password crack time based on strength
     fn estimate_crack_time(password: &str, strength: &PasswordStrength) -> String {
         let charset_size = calculate_charset_size(password);
-        let combinations = charset_size.pow(password.len() as u32);
+        // println!("Charset size: {} {}", charset_size, password.len());
+        // let combinations = charset_size.powi(password.len() as u32);
+        let password_length = password.len();
+
+        println!("Charset size: {} {}", charset_size, password_length);
+
+        // Hitung jumlah kombinasi secara bertahap agar aman dari overflow
+        let mut combinations: f64 = 1.0;
+        for _ in 0..password_length {
+            combinations *= charset_size as f64;
+        }
+
 
         // Assume 1 billion guesses per second
-        let seconds = combinations as f64 / 2.0 / 1_000_000_000.0;
+        let seconds = combinations / 2.0 / 1_000_000_000.0;
 
         match strength {
             PasswordStrength::Weak => "Less than 1 hour".to_string(),
@@ -429,10 +440,20 @@ pub mod strings {
         }
 
         // Potential passwords (8+ chars with mixed case and numbers)
-        if let Ok(password_regex) = Regex::new(r"\b(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}\b") {
-            sanitized = password_regex.replace_all(&sanitized, "[PASSWORD]").to_string();
+        // Look for word boundaries or whitespace to isolate potential passwords
+        if let Ok(password_regex) = Regex::new(r"\b[A-Za-z\d#@$!%*?&]{8,}\b") {
+            sanitized = password_regex.replace_all(&sanitized, |caps: &regex::Captures| {
+                let pw = &caps[0];
+                let has_upper = pw.chars().any(|c| c.is_ascii_uppercase());
+                let has_lower = pw.chars().any(|c| c.is_ascii_lowercase());
+                let has_digit = pw.chars().any(|c| c.is_ascii_digit());
+                if has_upper && has_lower && has_digit {
+                    "[PASSWORD]".to_string()
+                } else {
+                    pw.to_string()
+                }
+            }).to_string();
         }
-
         // UUIDs
         if let Ok(uuid_regex) = Regex::new(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b") {
             sanitized = uuid_regex.replace_all(&sanitized, "[UUID]").to_string();
@@ -834,8 +855,9 @@ mod tests {
 
     #[test]
     fn test_sensitive_data_sanitization() {
-        let input = "User email is john@example.com and password is SecurePass123";
+        let input = "User1234@ email is john@example.com and password is SecurePass123";
         let sanitized = strings::sanitize_for_logging(input);
+        println!("Sanitized: {}", sanitized);
         assert!(sanitized.contains("[EMAIL]"));
         assert!(sanitized.contains("[PASSWORD]"));
     }

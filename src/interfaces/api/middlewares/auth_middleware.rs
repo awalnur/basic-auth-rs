@@ -92,9 +92,10 @@ where
 
         // Extract the Authorization header
         let auth_header = req.headers().get("Authorization");
-
+        debug!("Processing request: {:?}", req);
         if let Some(auth_value) = auth_header {
             if let Ok(auth_str) = auth_value.to_str() {
+                debug!("Authorization header found: {}", auth_str);
                 // Check if it's a Bearer token
                 if auth_str.starts_with("Bearer ") {
                     let token = &auth_str[7..]; // Remove "Bearer " prefix
@@ -157,7 +158,7 @@ where
             Box::pin(async move {
                 let error_response = ApiErrorResponse::new(
                     401,
-                    "missing_auth_header",
+                    "Unauthorized",
                     "Authorization header is required",
                 ).to_http_response();
 
@@ -185,6 +186,8 @@ pub trait AuthUserExtractor {
 
 impl AuthUserExtractor for ServiceRequest {
     fn authenticated_user(&self) -> Option<&AuthenticatedUser> {
+        println!("sesds {:?}", self);
+
         let extensions = self.extensions();
         extensions.get::<&AuthenticatedUser>().cloned()
     }
@@ -192,8 +195,8 @@ impl AuthUserExtractor for ServiceRequest {
 
 impl AuthUserExtractor for actix_web::HttpRequest {
     fn authenticated_user(&self) -> Option<&AuthenticatedUser> {
-        let extensions = self.extensions();
-        extensions.get::<&AuthenticatedUser>().cloned()
+        // let extensions = self.extensions();=
+        self.extensions().get::<&AuthenticatedUser>().map(|x| &**x)
     }
 }
 
@@ -256,7 +259,10 @@ mod tests {
     #[actix_web::test]
     async fn test_middleware_with_valid_token() {
         let token_service = Arc::new(MockTokenService::new(true, "user123".to_string()));
+        // Create the AuthMiddleware with the mock token service
+        println!(":{}", token_service.as_ref().get_user_id_from_token("valid_token").unwrap());
         let auth_middleware = AuthMiddleware::new(token_service);
+
 
         let app = test::init_service(
             App::new()
@@ -270,6 +276,7 @@ mod tests {
             .to_request();
 
         let resp = test::call_service(&app, req).await;
+        println!("{:?}", resp);
         assert!(resp.status().is_success());
     }
 
@@ -300,7 +307,7 @@ mod tests {
 
         assert_eq!(error_response.success, false);
         assert_eq!(error_response.status_code, 401);
-        assert_eq!(error_response.error_code, "unauthorized");
+        assert_eq!(error_response.error_code, "Unauthorized");
     }
 
     #[actix_web::test]
@@ -329,7 +336,7 @@ mod tests {
 
         assert_eq!(error_response.success, false);
         assert_eq!(error_response.status_code, 401);
-        assert_eq!(error_response.error_code, "unauthorized");
+        assert_eq!(error_response.error_code, "Unauthorized");
         assert!(error_response.message.contains("Authorization header is required"));
     }
 
@@ -360,7 +367,7 @@ mod tests {
 
         assert_eq!(error_response.success, false);
         assert_eq!(error_response.status_code, 401);
-        assert_eq!(error_response.error_code, "unauthorized");
+        assert_eq!(error_response.error_code, "Unauthorized");
         assert!(error_response.message.contains("Bearer"));
     }
 }
