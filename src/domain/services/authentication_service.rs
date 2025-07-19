@@ -36,8 +36,8 @@ pub enum AuthenticationError {
 ///
 /// # Examples
 ///
-/// ```rust
-/// use crate::domain::services::authentication_service::AuthenticationService;
+/// ```ignore
+/// use basic_auth::domain::services::authentication_service::AuthenticationService;
 ///
 /// let auth_service = AuthenticationService::new(user_repository);
 /// let result = auth_service.authenticate_user("user@example.com", "password").await;

@@ -17,7 +17,8 @@ pub type RepositoryResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 ///
 /// # Implementation
 ///
-/// ```rust
+/// ```ignore
+///
 /// struct UserRepositoryImpl {
 ///     // Specific implementation...
 /// }

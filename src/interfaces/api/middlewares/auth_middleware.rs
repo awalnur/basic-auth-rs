@@ -156,11 +156,7 @@ where
             warn!("Access denied: Missing Authorization header");
             let app_error = AppError::authentication("Authorization header is required");
             Box::pin(async move {
-                let error_response = ApiErrorResponse::new(
-                    401,
-                    "Unauthorized",
-                    "Authorization header is required",
-                ).to_http_response();
+                let error_response = app_error.to_response().to_http_response();
 
                 Ok(req.into_response(error_response))
             })
@@ -181,22 +177,19 @@ pub trait AuthUserExtractor {
     /// # Returns
     ///
     /// * `Option<AuthenticatedUser>` - Authenticated user if present
-    fn authenticated_user(&self) -> Option<&AuthenticatedUser>;
+    fn authenticated_user(self) -> Option<AuthenticatedUser>;
 }
 
 impl AuthUserExtractor for ServiceRequest {
-    fn authenticated_user(&self) -> Option<&AuthenticatedUser> {
-        println!("sesds {:?}", self);
-
-        let extensions = self.extensions();
-        extensions.get::<&AuthenticatedUser>().cloned()
+    fn authenticated_user(self) -> Option<AuthenticatedUser> {
+        self.extensions().get::<AuthenticatedUser>().cloned()
     }
 }
 
 impl AuthUserExtractor for actix_web::HttpRequest {
-    fn authenticated_user(&self) -> Option<&AuthenticatedUser> {
+    fn authenticated_user(self) -> Option<AuthenticatedUser> {
         // let extensions = self.extensions();=
-        self.extensions().get::<&AuthenticatedUser>().map(|x| &**x)
+        self.extensions().get::<AuthenticatedUser>().cloned()
     }
 }
 
@@ -243,7 +236,7 @@ mod tests {
         }
     }
 
-    async fn test_handler(req: actix_web::HttpRequest) -> HttpResponse {
+    async fn test_handler(req: actix_web::HttpRequest) -> impl actix_web::Responder {
         if let Some(user) = req.authenticated_user() {
             HttpResponse::Ok().json(json!({
                 "message": "Success",
@@ -260,14 +253,24 @@ mod tests {
     async fn test_middleware_with_valid_token() {
         let token_service = Arc::new(MockTokenService::new(true, "user123".to_string()));
         // Create the AuthMiddleware with the mock token service
-        println!(":{}", token_service.as_ref().get_user_id_from_token("valid_token").unwrap());
         let auth_middleware = AuthMiddleware::new(token_service);
 
 
         let app = test::init_service(
             App::new()
                 .wrap(auth_middleware)
-                .route("/protected", web::get().to(test_handler))
+                .route("/protected", web::get().to(|req: actix_web::HttpRequest| async move {
+                    if let Some(user) = req.authenticated_user() {
+                        HttpResponse::Ok().json(json!({
+                        "message": "Success",
+                        "user_id": user.user_id
+                    }))
+                    } else {
+                        HttpResponse::InternalServerError().json(json!({
+                        "error": "No authenticated user found"
+                    }))
+                    }
+                }))
         ).await;
 
         let req = test::TestRequest::get()
@@ -276,7 +279,6 @@ mod tests {
             .to_request();
 
         let resp = test::call_service(&app, req).await;
-        println!("{:?}", resp);
         assert!(resp.status().is_success());
     }
 

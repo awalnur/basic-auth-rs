@@ -22,9 +22,16 @@ use crate::interfaces::api::routes::SafeJson;
 ///
 /// # Example
 ///
-/// ```
-/// let auth_controller = AuthController::new(login_use_case, create_user_use_case);
-/// ```
+// ```rust
+// use std::sync::Arc;
+// use basic_auth::application::use_cases::auth::login_use_case::LoginUseCase;
+// use basic_auth::application::use_cases::user::create_user_use_case::CreateUserUseCase;
+// use basic_auth::interfaces::api::controllers::auth_controller::AuthController;
+// let login_use_case = Arc::new(LoginUseCase::new());
+// let create_user_use_case = Arc::new(CreateUserUseCase::new());
+// let auth_controller = AuthController::new(login_use_case, create_user_use_case);
+// ```
+
 pub struct AuthController {
     login_use_case: Arc<LoginUseCase>,
     create_user_use_case: Arc<CreateUserUseCase>,

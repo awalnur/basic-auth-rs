@@ -1,7 +1,7 @@
 // Domain entities representing core business objects
 // Independent from infrastructure and framework
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Utc};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
@@ -14,7 +14,7 @@ use uuid::Uuid;
 /// # Examples
 ///
 /// ```rust
-/// use crate::domain::entities::user::User;
+/// use basic_auth::domain::entities::user::User;
 ///
 /// let user = User::new(
 ///     "johndoe".to_string(),

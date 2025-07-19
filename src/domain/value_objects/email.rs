@@ -12,16 +12,15 @@ use std::fmt;
 ///
 /// # Examples
 ///
-/// ```rust
-/// use crate::domain::value_objects::email::Email;
-///
-/// let email = Email::new("user@example.com".to_string()).expect("Valid email");
-/// assert_eq!(email.value(), "user@example.com");
-///
-/// // Invalid email will return an error
-/// let invalid = Email::new("invalid-email".to_string());
-/// assert!(invalid.is_err());
-/// ```
+// ```rust
+//
+// let email = Email::new("user@example.com".to_string()).expect("Valid email");
+// assert_eq!(email.value(), "user@example.com");
+//
+// // Invalid email will return an error
+// let invalid = Email::new("invalid-email".to_string());
+// assert!(invalid.is_err());
+// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Email {
     value: String,

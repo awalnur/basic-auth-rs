@@ -12,7 +12,7 @@ use thiserror::Error;
 ///
 /// ```no_run
 /// // Example usage (this is documentation, not executed as test)
-/// use self::DomainError;
+/// use basic_auth::domain::errors::domain_error::DomainError;
 ///
 /// fn process_business_logic() -> Result<(), DomainError> {
 ///     // Business logic implementation...

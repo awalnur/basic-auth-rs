@@ -5,7 +5,6 @@ use regex::Regex;
 use std::collections::HashMap;
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
-use lazy_static::lazy_static;
 use std::sync::OnceLock;
 
 // Using OnceLock instead of lazy_static for better performance and no external dependency
@@ -53,7 +52,7 @@ pub mod validation {
     /// # Example
     ///
     /// ```rust
-    /// use crate::common::utils::validation::is_valid_email;
+    /// use basic_auth::common::utils::validation::is_valid_email;
     ///
     /// assert!(is_valid_email("user@example.com"));
     /// assert!(!is_valid_email("invalid-email"));
@@ -138,7 +137,7 @@ pub mod validation {
     /// # Example
     ///
     /// ```rust
-    /// use crate::common::utils::validation::validate_password;
+    /// use basic_auth::common::utils::validation::validate_password;
     ///
     /// let result = validate_password("MySecureP@ss123", 8);
     /// assert!(result.is_valid);
@@ -761,8 +760,6 @@ pub mod rate_limit {
 
 /// Cryptographic utilities
 pub mod crypto {
-    use std::fmt;
-
     /// Generates a cryptographically secure random token
     pub fn generate_crypto_token(length: usize) -> String {
         use rand::{rngs::OsRng, RngCore};

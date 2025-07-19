@@ -40,7 +40,7 @@ use std::fmt;
 ///
 /// ```no_run
 /// // Example usage (this is documentation, not executed as test)
-/// use self::AppError;
+/// use basic_auth::common::errors::AppError;
 ///
 /// fn some_operation() -> Result<String, AppError> {
 ///     // Example domain operation that might fail
@@ -52,7 +52,7 @@ use std::fmt;
 /// }
 ///
 /// // Example helper function returning domain error
-/// fn validate_business_rules() -> Result<String, crate::domain::errors::domain_error::DomainError> {
+/// fn validate_business_rules() -> Result<String, basic_auth::domain::errors::domain_error::DomainError> {
 ///     // Business logic implementation
 ///     Ok("Success".to_string())
 /// }
